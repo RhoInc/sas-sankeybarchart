@@ -3,4 +3,6 @@ This repository contains a set of SAS macros for creating longitudinal bar chart
 
 ![sas-sankeybarchart png](https://github.com/RhoInc/sas-sankeybarchart/blob/master/img/mo1.png)
 
-Visit the [Wiki](https://github.com/RhoInc/sas-sankeybarchart/wiki) for more details!
+For more details you have two options.
+- The [Wiki](https://github.com/RhoInc/sas-sankeybarchart/wiki).
+- The [PharmaSUG paper](https://github.com/RhoInc/sas-sankeybarchart/blob/master/paper/SankeyBarCharts.pdf).
