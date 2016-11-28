@@ -63,6 +63,9 @@ barwidth=         Width of bars.
                   Values must be in the 0-1 range.
                   Default: 0.25.
                   
+yfmt=             Format for yvar/legend.
+                  Default: values of yvar variable in original dataset.
+
 xfmt=             Format for x-axis/time.
                   Default: values of xvar variable in original dataset.
 
@@ -94,6 +97,7 @@ debug=            Keep work datasets.
    ,xvarord=
    ,colorlist=
    ,barwidth=0.25
+   ,yfmt=
    ,xfmt=
    ,legendtitle=
    ,interpol=cosine
@@ -130,6 +134,7 @@ debug=            Keep work datasets.
          ,interpol=&interpol
          ,percents=&percents
          %if &colorlist ne %then ,colorlist=&colorlist;
+         %if &yfmt ne %then ,yfmt=&yfmt;
          %if &xfmt ne %then ,xfmt=&xfmt;
          %if &legendtitle ne %then ,legendtitle=&legendtitle;
          );

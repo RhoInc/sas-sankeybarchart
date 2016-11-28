@@ -50,6 +50,9 @@ barwidth=         Width of bars.
                   Values must be in the 0-1 range.
                   Default: 0.25.
                   
+yfmt=             Format for yvar/legend.
+                  Default: values of yvar variable in original dataset.
+
 xfmt=             Format for x-axis/time.
                   Default: values of xvar variable in original dataset.
 
@@ -74,6 +77,7 @@ percents=         Show percents inside each bar.
    (sankeylib=work
    ,colorlist=
    ,barwidth=0.25
+   ,yfmt=
    ,xfmt=
    ,legendtitle=
    ,interpol=cosine
@@ -296,7 +300,11 @@ percents=         Show percents inside each bar.
             xb&jc = x;
             lowb&jc = low;
             highb&jc = high;
-            legendlabel = "&&yvarord&jro";
+            %if &yfmt eq %then 
+               legendlabel = "&&yvarord&jro" ;
+            %else %if &yfmt ne %then
+               legendlabel = put(y,yfmt.) ;
+            ;
             highlow = "highlow x=xb&jc low=lowb&jc high=highb&jc / type=bar barwidth=&barwidth" ||
                " fillattrs=(color=" || trim(color) || ")" ||
                " name='" || trim(color) || "' legendlabel='" || trim(legendlabel) || "';";
