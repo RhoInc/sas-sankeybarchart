@@ -31,25 +31,29 @@ SAS Sankey macro created by Shane Rosanbalm of Rho, Inc. 2015
 
 *---------- required parameters ----------;
 
-data=             vertical dataset to be converted to sankey structures
+data=             Vertical dataset to be converted to sankey structures
 
-subject=          subject identifier
+subject=          Subject identifier
 
-yvar=             categorical y-axis variable
-                  converted to values 1-N for use in plotting
+yvar=             Categorical y-axis variable
+                  Converted to values 1-N for use in plotting
                   
-xvar=             categorical x-axis variable
-                  converted to values 1-N for use in plotting
+xvar=             Categorical x-axis variable
+                  Converted to values 1-N for use in plotting
 
 *---------- optional parameters ----------;
 
-yvarord=          sort order for y-axis conversion, in a comma separated list
-                     e.g., yvarord=%quote(red rum, george smith, tree)
-                  default sort is equivalent to ORDER=DATA
+completecases=    Whether or not to require non-missing yvar at all xvar values
+                  Valid values: yes/no.
+                  Default: yes.
                   
-xvarord=          sort order for x-axis conversion, in a comma separated list
+yvarord=          Sort order for y-axis conversion, in a comma separated list
+                     e.g., yvarord=%quote(red rum, george smith, tree)
+                  Default sort is equivalent to ORDER=DATA
+                  
+xvarord=          Sort order for x-axis conversion, in a comma separated list
                      e.g., xvarord=%quote(pink plum, fred funk, grass)
-                  default sort is equivalent to ORDER=DATA
+                  Default sort is equivalent to ORDER=DATA
 
 colorlist=        A space-separated list of colors: one color per yvar group.
                   Not compatible with color descriptions (e.g., very bright green).
@@ -73,6 +77,10 @@ percents=         Show percents inside each bar.
                   Valid values: yes/no.
                   Default: yes.
                   
+debug=            Keep work datasets.
+                  Valid values: yes/no.
+                  Default: no.                  
+                  
 -------------------------------------------------------------------------------------------------*/
 
 
@@ -81,6 +89,7 @@ percents=         Show percents inside each bar.
    ,subject=
    ,yvar=
    ,xvar=
+   ,completecases=yes
    ,yvarord=
    ,xvarord=
    ,colorlist=
@@ -89,13 +98,12 @@ percents=         Show percents inside each bar.
    ,legendtitle=
    ,interpol=cosine
    ,percents=yes
+   ,debug=no
    );
    
 
    %*---------- first inner macro ----------;
 
-   %include "rawtosankey.sas";
-   
    %if &data eq %str() or &subject eq %str() or &yvar eq %str() or &xvar eq %str() %then %do;
       %put SankeyBarChart -> AT LEAST ONE REQUIRED PARAMETER IS MISSING;
       %put SankeyBarChart -> THE MACRO WILL STOP EXECUTING;
@@ -107,14 +115,13 @@ percents=         Show percents inside each bar.
       ,subject=&subject
       ,yvar=&yvar
       ,xvar=&xvar
+      %if &completecases ne %then ,completecases=&completecases;
       %if &yvarord ne %then ,yvarord=&yvarord;
       %if &xvarord ne %then ,xvarord=&xvarord;
       );
 
 
    %*---------- second inner macro ----------;
-
-   %include "sankey.sas";
 
    %if &rts = 1 %then %do;
    

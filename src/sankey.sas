@@ -255,7 +255,7 @@ percents=         Show percents inside each bar.
       retain cumpct;
       if first.x then cumpct = 0;
       low = cumpct;
-      high = cumpct + rowpercent;
+      high = cumpct + 100*frequency/&subject_n;
       cumpct = high;   
       keep x y node low high;   
    run;
@@ -355,6 +355,8 @@ percents=         Show percents inside each bar.
 
 
 
+   /* --- SUPERCEDED BY &SUBJECT_N IN RAWTOSANKEY ---
+   
    %*---------- number of subjects overall ----------;
    
    proc sql noprint;
@@ -366,42 +368,84 @@ percents=         Show percents inside each bar.
    quit;
    
    %put NOTE- &=denom;
+   
+   */
       
    %*---------- left edge of each band ----------;
    
+   proc sql;
+      create   table _links1 as
+      select   a.*, b.high as cumthickness 
+      from     links as a
+               inner join _highlow (where=(high~=low)) as b
+               on a.x1 = b.x 
+                  and a.y1 = b.y
+      order by x1, y1, x2, y2
+      ;
+   quit;
+   
    data _links2;
-      set links;
+      set _links1;
       by x1 y1 x2 y2;
       link = _N_;
-      retain lastybhigh1;
-      if first.x1 then lastybhigh1 = 0;
       xt1 = x1;
+      retain lastybhigh1;
+      if first.x1 then 
+         lastybhigh1 = 0;
       yblow1 = lastybhigh1;
-      ybhigh1 = lastybhigh1 + thickness/&denom;
+      ybhigh1 = lastybhigh1 + thickness/&subject_n;
       lastybhigh1 = ybhigh1;
-   run;
-   
-   proc sort data=_links2 out=_links3;
-      by x2 y2 x1 y1;
+      if last.y1 then
+         lastybhigh1 = cumthickness/&subject_n;
    run;
    
    %*---------- right edge of each band ----------;
    
-   data _links3;
+   proc sql;
+      create   table _links3 as
+      select   a.*, b.high as cumthickness 
+      from     links as a
+               inner join _highlow (where=(high~=low)) as b
+               on a.x2 = b.x 
+                  and a.y2 = b.y
+      order by x2, y2, x1, y1
+      ;
+   quit;
+   
+   data _links4;
       set _links3;
       by x2 y2 x1 y1;
       retain lastybhigh2;
-      if first.x2 then lastybhigh2 = 0;
+      if first.x2 then 
+         lastybhigh2 = 0;
       xt2 = x2;
       yblow2 = lastybhigh2;
-      ybhigh2 = lastybhigh2 + thickness/&denom;
+      ybhigh2 = lastybhigh2 + thickness/&subject_n;
       lastybhigh2 = ybhigh2;
+      if last.y2 then
+         lastybhigh2 = cumthickness/&subject_n;
    run;
    
    %*---------- make vertical ----------;
    
-   data _links4;
-      set _links3;
+   proc sort data=_links2 out=_links2b;
+      by x1 y1 x2 y2;
+   run;
+   
+   proc sort data=_links4 out=_links4b;
+      by x1 y1 x2 y2;
+   run;
+   
+   data _links5;
+      merge
+         _links2b (keep=x1 y1 x2 y2 xt1 yblow1 ybhigh1 link)
+         _links4b (keep=x1 y1 x2 y2 xt2 yblow2 ybhigh2)
+         ;
+      by x1 y1 x2 y2;
+   run;
+   
+   data _links6;
+      set _links5;
       
       xt1alt = xt1 + &barwidth*0.48;
       xt2alt = xt2 - &barwidth*0.48;
@@ -443,7 +487,7 @@ percents=         Show percents inside each bar.
       keep xt yblow ybhigh link y1;
    run;
    
-   proc sort data=_links4;
+   proc sort data=_links6;
       by link xt;
    run;
    
@@ -452,14 +496,14 @@ percents=         Show percents inside each bar.
    proc sql noprint;
       select   max(link)
       into     :maxband
-      from     _links4
+      from     _links6
       ;
    quit;
    
    %*---------- write the statements ----------;
    
    data _band_statements;
-      set _links4;
+      set _links6;
       by link xt;
       length band $200 color $20;
 
@@ -528,9 +572,13 @@ percents=         Show percents inside each bar.
    %*--------------------------------------------------------------------------------;
    
    
-   proc datasets library=work nolist;
-      delete _nodes: _links: _all: _band: _highlow: _ctfhl;
-   run; quit;
+   %if &debug eq no %then %do;
+   
+      proc datasets library=work nolist;
+         delete _nodes: _links: _all: _band: _highlow: _ctfhl _denom:;
+      run; quit;
+   
+   %end;
    
 
 

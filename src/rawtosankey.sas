@@ -24,6 +24,10 @@ xvar=             categorical x-axis variable
 
 *---------- optional parameters ----------;
 
+completecases=    whether or not to require non-missing yvar at all xvar values
+                  valid values: yes/no.
+                  default: yes.
+                  
 outlib=           library in which to save NODES and LINKS datasets
                   default is the WORK library
                   
@@ -44,6 +48,7 @@ xvarord=          sort order for x-axis conversion, in a comma separated list
    ,subject=
    ,yvar=
    ,xvar=
+   ,completecases=
    ,outlib=work
    ,yvarord=
    ,xvarord=
@@ -126,7 +131,9 @@ xvarord=          sort order for x-axis conversion, in a comma separated list
    
    data _nodes00;
       set &data;
-      where not missing(&yvar);
+      %if &completecases = yes %then %do;
+         where not missing(&yvar);
+      %end;
    run;
    
    
@@ -458,7 +465,6 @@ xvarord=          sort order for x-axis conversion, in a comma separated list
       %end;
    run;
    
-   
    %*---------- enumerate xvar values ----------;
    
    proc sort data=_nodes10 out=_nodes15;
@@ -473,8 +479,7 @@ xvarord=          sort order for x-axis conversion, in a comma separated list
       %end;
    run;
    
-   
-   %*---------- keep only complete cases ----------;
+   %*---------- subset if doing complete cases ----------;
    
    proc sql noprint;
       select   max(x)
@@ -488,11 +493,25 @@ xvarord=          sort order for x-axis conversion, in a comma separated list
       create table _nodes30 as
       select   *
       from     _nodes20
-      group by &subject
-      having   count(*) eq &xmax
+      %if &completecases eq yes %then %do;
+         group by &subject
+         having   count(*) eq &xmax
+      %end;
       ;
    quit;
 
+   %*---------- count subjects in case not doing complete cases ----------;
+
+   %global subject_n;
+   
+   proc sql noprint;
+      select   count(distinct &subject)
+      into     :subject_n
+      from     _nodes10
+      ;
+      %put &=subject_n;
+   quit;
+   
    
    %*-----------------------------------------------------------------------------------------;
    %*---------- transform raw data to nodes structure ----------;
@@ -558,9 +577,13 @@ xvarord=          sort order for x-axis conversion, in a comma separated list
    %*--------------------------------------------------------------------------------;
    
    
-   proc datasets library=work nolist;
-      delete _nodes: _links:;
-   run; quit;
+   %if &debug eq no %then %do;
+   
+      proc datasets library=work nolist;
+         delete _nodes: _links:;
+      run; quit;
+   
+   %end;
    
    
    %*---------- return code ----------;
