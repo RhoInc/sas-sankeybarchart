@@ -43,7 +43,7 @@ xvar=             Categorical x-axis variable
 
 *---------- optional parameters ----------;
 
-completecases=    Whether or not to require non-missing yvar at all xvar values
+completecases=    Whether or not to require non-missing yvar at all xvar values for a subject
                   Valid values: yes/no.
                   Default: yes.
                   
@@ -65,9 +65,11 @@ barwidth=         Width of bars.
                   
 yfmt=             Format for yvar/legend.
                   Default: values of yvar variable in original dataset.
+                  Gotcha: user-defined formats must utilize converted yvar values 1-N.
 
 xfmt=             Format for x-axis/time.
                   Default: values of xvar variable in original dataset.
+                  Gotcha: user-defined formats must utilize converted xvar values 1-N.
 
 legendtitle=      Text to use for legend title.
                      e.g., legendtitle=%quote(Response Value)
@@ -76,9 +78,14 @@ interpol=         Method of interpolating between bars.
                   Valid values are: cosine, linear.
                   Default: cosine.
 
-percents=         Show percents inside each bar.
+stat=             Show percents or frequencies on y-axis.
+                  Valid values: percent/freq.
+                  Default: percent.
+                  
+datalabel=        Show percents or frequencies inside each bar.
                   Valid values: yes/no.
                   Default: yes.
+                  Interaction: will display percents or frequences per stat=.
                   
 debug=            Keep work datasets.
                   Valid values: yes/no.
@@ -101,7 +108,8 @@ debug=            Keep work datasets.
    ,xfmt=
    ,legendtitle=
    ,interpol=cosine
-   ,percents=yes
+   ,stat=percent
+   ,datalabel=yes
    ,debug=no
    );
    
@@ -132,7 +140,8 @@ debug=            Keep work datasets.
       %sankey
          (barwidth=&barwidth
          ,interpol=&interpol
-         ,percents=&percents
+         ,stat=&stat
+         ,datalabel=&datalabel
          %if &colorlist ne %then ,colorlist=&colorlist;
          %if &yfmt ne %then ,yfmt=&yfmt;
          %if &xfmt ne %then ,xfmt=&xfmt;

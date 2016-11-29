@@ -63,9 +63,14 @@ interpol=         Method of interpolating between bars.
                   Valid values are: cosine, linear.
                   Default: cosine.
 
-percents=         Show percents inside each bar.
+stat=             Show percents or frequencies on y-axis.
+                  Valid values: percent/freq.
+                  Default: percent.
+                  
+datalabel=        Show percents or frequencies inside each bar.
                   Valid values: yes/no.
                   Default: yes.
+                  Interaction: will display percents or frequences per stat=.
                   
 *---------- outstanding issues ----------;
 
@@ -81,7 +86,8 @@ percents=         Show percents inside each bar.
    ,xfmt=
    ,legendtitle=
    ,interpol=cosine
-   ,percents=yes
+   ,stat=percent
+   ,datalabel=yes
    );
 
 
@@ -256,12 +262,17 @@ percents=         Show percents inside each bar.
       set _ctfhl;
       by x;
       node = _N_;
-      retain cumpct;
-      if first.x then cumpct = 0;
-      low = cumpct;
-      high = cumpct + 100*frequency/&subject_n;
-      cumpct = high;   
-      keep x y node low high;   
+      retain cumpercent;
+      if first.x then cumpercent = 0;
+      lowpercent = cumpercent;
+      highpercent = cumpercent + 100*frequency/&subject_n;
+      cumpercent = highpercent;   
+      retain cumcount;
+      if first.x then cumcount = 0;
+      lowcount = cumcount;
+      highcount = cumcount + frequency;
+      cumcount = highcount;   
+      keep x y node lowpercent highpercent lowcount highcount;   
    run;
    
    proc sql noprint;
@@ -298,8 +309,12 @@ percents=         Show percents inside each bar.
          %if &jro = 0 %then %let jro = &maxy;
          if node = &j then do;
             xb&jc = x;
-            lowb&jc = low;
-            highb&jc = high;
+            lowb&jc = lowpercent;
+            %if &stat eq freq %then
+               lowb&jc = lowb&jc*&subject_n/100;;
+            highb&jc = highpercent;
+            %if &stat eq freq %then
+               highb&jc = highb&jc*&subject_n/100;;
             %if &yfmt eq %then 
                legendlabel = "&&yvarord&jro" ;
             %else %if &yfmt ne %then
@@ -307,13 +322,20 @@ percents=         Show percents inside each bar.
             ;
             highlow = "highlow x=xb&jc low=lowb&jc high=highb&jc / type=bar barwidth=&barwidth" ||
                " fillattrs=(color=" || trim(color) || ")" ||
+               " lineattrs=(color=black pattern=solid)" ||
                " name='" || trim(color) || "' legendlabel='" || trim(legendlabel) || "';";
             *--- sneaking in a scatter statement for percent annotation purposes ---;
-            mean = mean(low,high);
-            percent = high - low;
+            mean = mean(lowpercent,highpercent);
+            %if &stat eq freq %then
+               mean = mean(lowcount,highcount);;
+            percent = highpercent - lowpercent;
+            %if &stat eq freq %then
+               percent = highcount - lowcount;;
             if percent >= 1 then do;
                meanb&jc = mean;
                textb&jc = compress(put(percent,3.)) || '%';
+               %if &stat eq freq %then
+                  textb&jc = compress(put(percent,3.));;
                scatter = "scatter x=xb&jc y=meanb&jc / x2axis markerchar=textb&jc;";
             end;
          end;
@@ -363,29 +385,13 @@ percents=         Show percents inside each bar.
 
 
 
-   /* --- SUPERCEDED BY &SUBJECT_N IN RAWTOSANKEY ---
-   
-   %*---------- number of subjects overall ----------;
-   
-   proc sql noprint;
-      select   sum(size)
-      into     :denom trimmed
-      from     nodes
-      where    x = 1
-      ;
-   quit;
-   
-   %put NOTE- &=denom;
-   
-   */
-      
    %*---------- left edge of each band ----------;
    
    proc sql;
       create   table _links1 as
-      select   a.*, b.high as cumthickness 
+      select   a.*, b.highcount as cumthickness 
       from     links as a
-               inner join _highlow (where=(high~=low)) as b
+               inner join _highlow (where=(highcount~=lowcount)) as b
                on a.x1 = b.x 
                   and a.y1 = b.y
       order by x1, y1, x2, y2
@@ -411,9 +417,9 @@ percents=         Show percents inside each bar.
    
    proc sql;
       create   table _links3 as
-      select   a.*, b.high as cumthickness 
+      select   a.*, b.highcount as cumthickness 
       from     links as a
-               inner join _highlow (where=(high~=low)) as b
+               inner join _highlow (where=(highcount~=lowcount)) as b
                on a.x2 = b.x 
                   and a.y2 = b.y
       order by x2, y2, x1, y1
@@ -526,7 +532,11 @@ percents=         Show percents inside each bar.
          if link = &j then do;
             xt&jc = xt;
             yblow&jc = 100*yblow;
+            %if &stat eq freq %then
+               yblow&jc = yblow&jc*&subject_n/100;;
             ybhigh&jc = 100*ybhigh;
+            %if &stat eq freq %then
+               ybhigh&jc = ybhigh&jc*&subject_n/100;;
             band = "band x=xt&jc lower=yblow&jc upper=ybhigh&jc / x2axis transparency=0.5" || 
                " fill fillattrs=(color=" || trim(color) || ")" ||
                " ;";
@@ -564,13 +574,16 @@ percents=         Show percents inside each bar.
       %*---------- plotting statements ----------;
       &band;
       &highlow;
-      %if &percents = yes %then &scatter;;
+      %if &datalabel eq yes %then &scatter;;
       %*---------- axis and legend statements ----------;
       x2axis display=(nolabel noticks) min=1 max=&maxx integer offsetmin=&offset offsetmax=&offset 
          tickvalueformat=&xfmt;
       xaxis display=none type=discrete offsetmin=&offset offsetmax=&offset 
          tickvalueformat=&xfmt;
-      yaxis offsetmin=0.02 offsetmax=0.02 label="Percent" grid;
+      yaxis offsetmin=0.02 offsetmax=0.02 grid 
+         %if &stat eq freq %then label="Frequency";
+         %else label="Percent";
+         ;
       keylegend %do i = 1 %to &maxy; "&&color&i" %end; / title="&legendtitle";
    run;
    
