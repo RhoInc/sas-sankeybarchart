@@ -493,10 +493,10 @@ xvarord=          sort order for x-axis conversion, in a comma separated list
       create table _nodes30 as
       select   *
       from     _nodes20
-      %if &completecases eq yes %then %do;
+      %if &completecases eq yes %then 
          group by &subject
          having   count(*) eq &xmax
-      %end;
+         ;
       ;
    quit;
 
@@ -507,7 +507,12 @@ xvarord=          sort order for x-axis conversion, in a comma separated list
    proc sql noprint;
       select   count(distinct &subject)
       into     :subject_n
-      from     _nodes10
+      %if &completecases eq yes %then
+         from     _nodes30
+         ;
+      %if &completecases eq no %then
+         from     _nodes10
+         ;      
       ;
       %put &=subject_n;
    quit;

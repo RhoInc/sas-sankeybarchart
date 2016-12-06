@@ -330,7 +330,7 @@ percents=         Show percents inside each bar.
             %if &yfmt eq %then 
                legendlabel = "&&yvarord&jro" ;
             %else %if &yfmt ne %then
-               legendlabel = put(y,yfmt.) ;
+               legendlabel = put(y,&yfmt.) ;
             ;
             highlow = "highlow x=xb&jc low=lowb&jc high=highb&jc / type=bar barwidth=&barwidth" ||
                " fillattrs=(color=" || trim(color) || ")" ||
