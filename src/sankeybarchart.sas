@@ -91,6 +91,11 @@ debug=            Keep work datasets.
                   Valid values: yes/no.
                   Default: no.                  
                   
+*---------- depricated parameters ----------;
+
+percents=         Show percents inside each bar.
+                  This has been replaced by datalabel=. 
+
 -------------------------------------------------------------------------------------------------*/
 
 
@@ -111,14 +116,15 @@ debug=            Keep work datasets.
    ,stat=percent
    ,datalabel=yes
    ,debug=no
+   ,percents=
    );
    
 
    %*---------- first inner macro ----------;
 
    %if &data eq %str() or &subject eq %str() or &yvar eq %str() or &xvar eq %str() %then %do;
-      %put SankeyBarChart -> AT LEAST ONE REQUIRED PARAMETER IS MISSING;
-      %put SankeyBarChart -> THE MACRO WILL STOP EXECUTING;
+      %put %str(W)ARNING: SankeyBarChart -> AT LEAST ONE REQUIRED PARAMETER IS MISSING.;
+      %put %str(W)ARNING: SankeyBarChart -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
 
@@ -127,9 +133,12 @@ debug=            Keep work datasets.
       ,subject=&subject
       ,yvar=&yvar
       ,xvar=&xvar
-      %if &completecases ne %then ,completecases=&completecases;
-      %if &yvarord ne %then ,yvarord=&yvarord;
-      %if &xvarord ne %then ,xvarord=&xvarord;
+      %if &completecases ne %then 
+         ,completecases=&completecases;
+      %if &yvarord ne %then 
+         ,yvarord=&yvarord;
+      %if &xvarord ne %then 
+         ,xvarord=&xvarord;
       );
 
 
@@ -142,10 +151,16 @@ debug=            Keep work datasets.
          ,interpol=&interpol
          ,stat=&stat
          ,datalabel=&datalabel
-         %if &colorlist ne %then ,colorlist=&colorlist;
-         %if &yfmt ne %then ,yfmt=&yfmt;
-         %if &xfmt ne %then ,xfmt=&xfmt;
-         %if &legendtitle ne %then ,legendtitle=&legendtitle;
+         %if &colorlist ne %then 
+            ,colorlist=&colorlist;
+         %if &yfmt ne %then 
+            ,yfmt=&yfmt;
+         %if &xfmt ne %then 
+            ,xfmt=&xfmt;
+         %if &legendtitle ne %then 
+            ,legendtitle=&legendtitle;
+         %if &percents ne %then 
+            ,percents=&percents;
          );
       
    %end;

@@ -72,7 +72,10 @@ datalabel=        Show percents or frequencies inside each bar.
                   Default: yes.
                   Interaction: will display percents or frequences per stat=.
                   
-*---------- outstanding issues ----------;
+*---------- depricated parameters ----------;
+
+percents=         Show percents inside each bar.
+                  This has been replaced by datalabel=. 
 
 -------------------------------------------------------------------------------------------------*/
 
@@ -88,6 +91,7 @@ datalabel=        Show percents or frequencies inside each bar.
    ,interpol=cosine
    ,stat=percent
    ,datalabel=yes
+   ,percents=
    );
 
 
@@ -104,13 +108,21 @@ datalabel=        Show percents or frequencies inside each bar.
    
    %local i j;
    
+   %*---------- deal with percents= parameter ----------;
+   
+   %if &percents ne %then %do;
+      %put %str(W)ARNING: Sankey -> PARAMETER percents= HAS BEEN DEPRICATED.;
+      %put %str(W)ARNING: Sankey -> PLEASE SWITCH TO PARAMETER datalabel=.;
+      %put %str(W)ARNING: Sankey -> THE MACRO WILL STOP EXECUTING.;
+      %return;
+   %end;
    
    %*---------- dataset exists ----------;
    
    %let _dataexist = %sysfunc(exist(&sankeylib..nodes));
    %if &_dataexist = 0 %then %do;
-      %put Sankey -> DATASET [&sankeylib..nodes] DOES NOT EXIST;
-      %put Sankey -> THE MACRO WILL STOP EXECUTING.;
+      %put %str(W)ARNING: Sankey -> DATASET [&sankeylib..nodes] DOES NOT EXIST.;
+      %put %str(W)ARNING: Sankey -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
    
@@ -120,8 +132,8 @@ datalabel=        Show percents or frequencies inside each bar.
    
    %let _dataexist = %sysfunc(exist(&sankeylib..links));
    %if &_dataexist = 0 %then %do;
-      %put Sankey -> DATASET [&sankeylib..links] DOES NOT EXIST;
-      %put Sankey -> THE MACRO WILL STOP EXECUTING.;
+      %put %str(W)ARNING: Sankey -> DATASET [&sankeylib..links] DOES NOT EXIST.;
+      %put %str(W)ARNING: Sankey -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
    
@@ -143,15 +155,15 @@ datalabel=        Show percents or frequencies inside each bar.
    %mend varexist;
    
    %if %varexist(nodes,x) = 0 or %varexist(nodes,y) = 0 or %varexist(nodes,size) = 0 %then %do;
-      %put Sankey -> DATASET [work.nodes] MUST HAVE VARIABLES [x y size];
-      %put Sankey -> THE MACRO WILL STOP EXECUTING.;
+      %put %str(W)ARNING: Sankey -> DATASET [work.nodes] MUST HAVE VARIABLES [x y size].;
+      %put %str(W)ARNING: Sankey -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
    
    %if %varexist(links,x1) = 0 or %varexist(links,y1) = 0 or %varexist(links,x2) = 0 
          or %varexist(links,y2) = 0 or %varexist(links,thickness) = 0 %then %do;
-      %put Sankey -> DATASET [work.links] MUST HAVE VARIABLES [x1 y1 x2 y2 thickness];
-      %put Sankey -> THE MACRO WILL STOP EXECUTING.;
+      %put %str(W)ARNING: Sankey -> DATASET [work.links] MUST HAVE VARIABLES [x1 y1 x2 y2 thickness].;
+      %put %str(W)ARNING: Sankey -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
    
@@ -235,8 +247,8 @@ datalabel=        Show percents or frequencies inside each bar.
    run;
    
    %if &_badinterpol eq 1 %then %do;
-      %put Sankey -> THE VALUE INTERPOL= [&interpol] IS INVALID.;
-      %put Sankey -> THE MACRO WILL STOP EXECUTING.;
+      %put %str(W)ARNING: Sankey -> THE VALUE INTERPOL= [&interpol] IS INVALID.;
+      %put %str(W)ARNING: Sankey -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
    
@@ -595,7 +607,7 @@ datalabel=        Show percents or frequencies inside each bar.
    
    %if &debug eq no %then %do;
    
-      proc datasets library=work nolist;
+      proc datasets library=work nolist nodetails;
          delete _nodes: _links: _all: _band: _highlow: _ctfhl _denom:;
       run; quit;
    
