@@ -31,25 +31,29 @@ SAS Sankey macro created by Shane Rosanbalm of Rho, Inc. 2015
 
 *---------- required parameters ----------;
 
-data=             vertical dataset to be converted to sankey structures
+data=             Vertical dataset to be converted to sankey structures
 
-subject=          subject identifier
+subject=          Subject identifier
 
-yvar=             categorical y-axis variable
-                  converted to values 1-N for use in plotting
+yvar=             Categorical y-axis variable
+                  Converted to values 1-N for use in plotting
                   
-xvar=             categorical x-axis variable
-                  converted to values 1-N for use in plotting
+xvar=             Categorical x-axis variable
+                  Converted to values 1-N for use in plotting
 
 *---------- optional parameters ----------;
 
-yvarord=          sort order for y-axis conversion, in a comma separated list
-                     e.g., yvarord=%quote(red rum, george smith, tree)
-                  default sort is equivalent to ORDER=DATA
+completecases=    Whether or not to require non-missing yvar at all xvar values for a subject
+                  Valid values: yes/no.
+                  Default: yes.
                   
-xvarord=          sort order for x-axis conversion, in a comma separated list
+yvarord=          Sort order for y-axis conversion, in a comma separated list
+                     e.g., yvarord=%quote(red rum, george smith, tree)
+                  Default sort is equivalent to ORDER=DATA
+                  
+xvarord=          Sort order for x-axis conversion, in a comma separated list
                      e.g., xvarord=%quote(pink plum, fred funk, grass)
-                  default sort is equivalent to ORDER=DATA
+                  Default sort is equivalent to ORDER=DATA
 
 colorlist=        A space-separated list of colors: one color per yvar group.
                   Not compatible with color descriptions (e.g., very bright green).
@@ -59,8 +63,13 @@ barwidth=         Width of bars.
                   Values must be in the 0-1 range.
                   Default: 0.25.
                   
+yfmt=             Format for yvar/legend.
+                  Default: values of yvar variable in original dataset.
+                  Gotcha: user-defined formats must utilize converted yvar values 1-N.
+
 xfmt=             Format for x-axis/time.
                   Default: values of xvar variable in original dataset.
+                  Gotcha: user-defined formats must utilize converted xvar values 1-N.
 
 legendtitle=      Text to use for legend title.
                      e.g., legendtitle=%quote(Response Value)
@@ -69,10 +78,24 @@ interpol=         Method of interpolating between bars.
                   Valid values are: cosine, linear.
                   Default: cosine.
 
-percents=         Show percents inside each bar.
+stat=             Show percents or frequencies on y-axis.
+                  Valid values: percent/freq.
+                  Default: percent.
+                  
+datalabel=        Show percents or frequencies inside each bar.
                   Valid values: yes/no.
                   Default: yes.
+                  Interaction: will display percents or frequences per stat=.
                   
+debug=            Keep work datasets.
+                  Valid values: yes/no.
+                  Default: no.                  
+                  
+*---------- depricated parameters ----------;
+
+percents=         Show percents inside each bar.
+                  This has been replaced by datalabel=. 
+
 -------------------------------------------------------------------------------------------------*/
 
 
@@ -81,24 +104,27 @@ percents=         Show percents inside each bar.
    ,subject=
    ,yvar=
    ,xvar=
+   ,completecases=yes
    ,yvarord=
    ,xvarord=
    ,colorlist=
    ,barwidth=0.25
+   ,yfmt=
    ,xfmt=
    ,legendtitle=
    ,interpol=cosine
-   ,percents=yes
+   ,stat=percent
+   ,datalabel=yes
+   ,debug=no
+   ,percents=
    );
    
 
    %*---------- first inner macro ----------;
 
-   %include "rawtosankey.sas";
-   
    %if &data eq %str() or &subject eq %str() or &yvar eq %str() or &xvar eq %str() %then %do;
-      %put SankeyBarChart -> AT LEAST ONE REQUIRED PARAMETER IS MISSING;
-      %put SankeyBarChart -> THE MACRO WILL STOP EXECUTING;
+      %put %str(W)ARNING: SankeyBarChart -> AT LEAST ONE REQUIRED PARAMETER IS MISSING.;
+      %put %str(W)ARNING: SankeyBarChart -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
 
@@ -107,24 +133,34 @@ percents=         Show percents inside each bar.
       ,subject=&subject
       ,yvar=&yvar
       ,xvar=&xvar
-      %if &yvarord ne %then ,yvarord=&yvarord;
-      %if &xvarord ne %then ,xvarord=&xvarord;
+      %if &completecases ne %then 
+         ,completecases=&completecases;
+      %if &yvarord ne %then 
+         ,yvarord=&yvarord;
+      %if &xvarord ne %then 
+         ,xvarord=&xvarord;
       );
 
 
    %*---------- second inner macro ----------;
-
-   %include "sankey.sas";
 
    %if &rts = 1 %then %do;
    
       %sankey
          (barwidth=&barwidth
          ,interpol=&interpol
-         ,percents=&percents
-         %if &colorlist ne %then ,colorlist=&colorlist;
-         %if &xfmt ne %then ,xfmt=&xfmt;
-         %if &legendtitle ne %then ,legendtitle=&legendtitle;
+         ,stat=&stat
+         ,datalabel=&datalabel
+         %if &colorlist ne %then 
+            ,colorlist=&colorlist;
+         %if &yfmt ne %then 
+            ,yfmt=&yfmt;
+         %if &xfmt ne %then 
+            ,xfmt=&xfmt;
+         %if &legendtitle ne %then 
+            ,legendtitle=&legendtitle;
+         %if &percents ne %then 
+            ,percents=&percents;
          );
       
    %end;

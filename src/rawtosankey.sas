@@ -24,6 +24,10 @@ xvar=             categorical x-axis variable
 
 *---------- optional parameters ----------;
 
+completecases=    whether or not to require non-missing yvar at all xvar values
+                  valid values: yes/no.
+                  default: yes.
+                  
 outlib=           library in which to save NODES and LINKS datasets
                   default is the WORK library
                   
@@ -44,6 +48,7 @@ xvarord=          sort order for x-axis conversion, in a comma separated list
    ,subject=
    ,yvar=
    ,xvar=
+   ,completecases=
    ,outlib=work
    ,yvarord=
    ,xvarord=
@@ -84,8 +89,8 @@ xvarord=          sort order for x-axis conversion, in a comma separated list
    
    %let _dataexist = %sysfunc(exist(&data));
    %if &_dataexist = 0 %then %do;
-      %put RawToSankey -> DATASET [&data] DOES NOT EXIST;
-      %put RawToSankey -> THE MACRO WILL STOP EXECUTING.;
+      %put %str(W)ARNING: RawToSankey -> DATASET [&data] DOES NOT EXIST;
+      %put %str(W)ARNING: RawToSankey -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
    
@@ -104,20 +109,20 @@ xvarord=          sort order for x-axis conversion, in a comma separated list
    %mend varexist;
    
    %if %varexist(&data,&subject) = 0 %then %do;
-      %put RawToSankey -> VARIABLE [&subject] DOES NOT EXIST;
-      %put RawToSankey -> THE MACRO WILL STOP EXECUTING.;
+      %put %str(W)ARNING: RawToSankey -> VARIABLE [&subject] DOES NOT EXIST;
+      %put %str(W)ARNING: RawToSankey -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
    
    %if %varexist(&data,&yvar) = 0 %then %do;
-      %put RawToSankey -> VARIABLE [&yvar] DOES NOT EXIST;
-      %put RawToSankey -> THE MACRO WILL STOP EXECUTING.;
+      %put %str(W)ARNING: RawToSankey -> VARIABLE [&yvar] DOES NOT EXIST;
+      %put %str(W)ARNING: RawToSankey -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
    
    %if %varexist(&data,&xvar) = 0 %then %do;
-      %put RawToSankey -> VARIABLE [&xvar] DOES NOT EXIST;
-      %put RawToSankey -> THE MACRO WILL STOP EXECUTING.;
+      %put %str(W)ARNING: RawToSankey -> VARIABLE [&xvar] DOES NOT EXIST;
+      %put %str(W)ARNING: RawToSankey -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
    
@@ -126,7 +131,9 @@ xvarord=          sort order for x-axis conversion, in a comma separated list
    
    data _nodes00;
       set &data;
-      where not missing(&yvar);
+      %if &completecases = yes %then %do;
+         where not missing(&yvar);
+      %end;
    run;
    
    
@@ -317,9 +324,9 @@ xvarord=          sort order for x-axis conversion, in a comma separated list
    %*---------- same number of values ----------;
 
    %if &n_yvarord ne &n_yvar %then %do;
-      %put RawToSankey -> NUMBER OF yvarord= VALUES [&n_yvarord];
-      %put RawToSankey -> DOES NOT MATCH NUMBER OF yvar= VALUES [&n_yvar];
-      %put RawToSankey -> THE MACRO WILL STOP EXECUTING.;
+      %put %str(W)ARNING: RawToSankey -> NUMBER OF yvarord= VALUES [&n_yvarord];
+      %put %str(W)ARNING: RawToSankey -> DOES NOT MATCH NUMBER OF yvar= VALUES [&n_yvar];
+      %put %str(W)ARNING: RawToSankey -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
    
@@ -360,16 +367,16 @@ xvarord=          sort order for x-axis conversion, in a comma separated list
    run;
    
    %if &_badyvar eq 1 %then %do;
-      %put RawToSankey -> VALUE WAS FOUND IN yvarord= [&_yvarordlist];
-      %put RawToSankey -> THAT IS NOT IN yvar= [&_yvarlist];
-      %put RawToSankey -> THE MACRO WILL STOP EXECUTING.;
+      %put %str(W)ARNING: RawToSankey -> VALUE WAS FOUND IN yvarord= [&_yvarordlist];
+      %put %str(W)ARNING: RawToSankey -> THAT IS NOT IN yvar= [&_yvarlist];
+      %put %str(W)ARNING: RawToSankey -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
    
    %if &_badyvar eq 2 %then %do;
-      %put RawToSankey -> VALUE WAS FOUND IN yvar= [&_yvarlist];
-      %put RawToSankey -> THAT IS NOT IN yvarord= [&_yvarordlist];
-      %put RawToSankey -> THE MACRO WILL STOP EXECUTING.;
+      %put %str(W)ARNING: RawToSankey -> VALUE WAS FOUND IN yvar= [&_yvarlist];
+      %put %str(W)ARNING: RawToSankey -> THAT IS NOT IN yvarord= [&_yvarordlist];
+      %put %str(W)ARNING: RawToSankey -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
       
@@ -382,9 +389,9 @@ xvarord=          sort order for x-axis conversion, in a comma separated list
    %*---------- same number of values ----------;
    
    %if &n_xvarord ne &n_xvar %then %do;
-      %put RawToSankey -> NUMBER OF xvarord= VALUES [&n_xvarord];
-      %put RawToSankey -> DOES NOT MATCH NUMBER OF xvar= VALUES [&n_xvar];
-      %put RawToSankey -> THE MACRO WILL STOP EXECUTING.;
+      %put %str(W)ARNING: RawToSankey -> NUMBER OF xvarord= VALUES [&n_xvarord];
+      %put %str(W)ARNING: RawToSankey -> DOES NOT MATCH NUMBER OF xvar= VALUES [&n_xvar];
+      %put %str(W)ARNING: RawToSankey -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
    
@@ -425,16 +432,16 @@ xvarord=          sort order for x-axis conversion, in a comma separated list
    run;
    
    %if &_badxvar eq 1 %then %do;
-      %put RawToSankey -> VALUE WAS FOUND IN xvarord= [&_xvarordlist];
-      %put RawToSankey -> THAT IS NOT IN xvar= [&_xvarlist];
-      %put RawToSankey -> THE MACRO WILL STOP EXECUTING.;
+      %put %str(W)ARNING: RawToSankey -> VALUE WAS FOUND IN xvarord= [&_xvarordlist];
+      %put %str(W)ARNING: RawToSankey -> THAT IS NOT IN xvar= [&_xvarlist];
+      %put %str(W)ARNING: RawToSankey -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
    
    %if &_badxvar eq 2 %then %do;
-      %put RawToSankey -> VALUE WAS FOUND IN xvar= [&_xvarlist];
-      %put RawToSankey -> THAT IS NOT IN xvarord= [&_xvarordlist];
-      %put RawToSankey -> THE MACRO WILL STOP EXECUTING.;
+      %put %str(W)ARNING: RawToSankey -> VALUE WAS FOUND IN xvar= [&_xvarlist];
+      %put %str(W)ARNING: RawToSankey -> THAT IS NOT IN xvarord= [&_xvarordlist];
+      %put %str(W)ARNING: RawToSankey -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
       
@@ -458,7 +465,6 @@ xvarord=          sort order for x-axis conversion, in a comma separated list
       %end;
    run;
    
-   
    %*---------- enumerate xvar values ----------;
    
    proc sort data=_nodes10 out=_nodes15;
@@ -473,8 +479,7 @@ xvarord=          sort order for x-axis conversion, in a comma separated list
       %end;
    run;
    
-   
-   %*---------- keep only complete cases ----------;
+   %*---------- subset if doing complete cases ----------;
    
    proc sql noprint;
       select   max(x)
@@ -488,11 +493,30 @@ xvarord=          sort order for x-axis conversion, in a comma separated list
       create table _nodes30 as
       select   *
       from     _nodes20
-      group by &subject
-      having   count(*) eq &xmax
+      %if &completecases eq yes %then 
+         group by &subject
+         having   count(*) eq &xmax
+         ;
       ;
    quit;
 
+   %*---------- count subjects in case not doing complete cases ----------;
+
+   %global subject_n;
+   
+   proc sql noprint;
+      select   count(distinct &subject)
+      into     :subject_n
+      %if &completecases eq yes %then
+         from     _nodes30
+         ;
+      %if &completecases eq no %then
+         from     _nodes10
+         ;      
+      ;
+      %put &=subject_n;
+   quit;
+   
    
    %*-----------------------------------------------------------------------------------------;
    %*---------- transform raw data to nodes structure ----------;
@@ -558,9 +582,13 @@ xvarord=          sort order for x-axis conversion, in a comma separated list
    %*--------------------------------------------------------------------------------;
    
    
-   proc datasets library=work nolist;
-      delete _nodes: _links:;
-   run; quit;
+   %if &debug eq no %then %do;
+   
+      proc datasets library=work nolist;
+         delete _nodes: _links:;
+      run; quit;
+   
+   %end;
    
    
    %*---------- return code ----------;

@@ -50,6 +50,9 @@ barwidth=         Width of bars.
                   Values must be in the 0-1 range.
                   Default: 0.25.
                   
+yfmt=             Format for yvar/legend.
+                  Default: values of yvar variable in original dataset.
+
 xfmt=             Format for x-axis/time.
                   Default: values of xvar variable in original dataset.
 
@@ -60,11 +63,19 @@ interpol=         Method of interpolating between bars.
                   Valid values are: cosine, linear.
                   Default: cosine.
 
-percents=         Show percents inside each bar.
+stat=             Show percents or frequencies on y-axis.
+                  Valid values: percent/freq.
+                  Default: percent.
+                  
+datalabel=        Show percents or frequencies inside each bar.
                   Valid values: yes/no.
                   Default: yes.
+                  Interaction: will display percents or frequences per stat=.
                   
-*---------- outstanding issues ----------;
+*---------- depricated parameters ----------;
+
+percents=         Show percents inside each bar.
+                  This has been replaced by datalabel=. 
 
 -------------------------------------------------------------------------------------------------*/
 
@@ -74,10 +85,13 @@ percents=         Show percents inside each bar.
    (sankeylib=work
    ,colorlist=
    ,barwidth=0.25
+   ,yfmt=
    ,xfmt=
    ,legendtitle=
    ,interpol=cosine
-   ,percents=yes
+   ,stat=percent
+   ,datalabel=yes
+   ,percents=
    );
 
 
@@ -94,13 +108,21 @@ percents=         Show percents inside each bar.
    
    %local i j;
    
+   %*---------- deal with percents= parameter ----------;
+   
+   %if &percents ne %then %do;
+      %put %str(W)ARNING: Sankey -> PARAMETER percents= HAS BEEN DEPRICATED.;
+      %put %str(W)ARNING: Sankey -> PLEASE SWITCH TO PARAMETER datalabel=.;
+      %put %str(W)ARNING: Sankey -> THE MACRO WILL STOP EXECUTING.;
+      %return;
+   %end;
    
    %*---------- dataset exists ----------;
    
    %let _dataexist = %sysfunc(exist(&sankeylib..nodes));
    %if &_dataexist = 0 %then %do;
-      %put Sankey -> DATASET [&sankeylib..nodes] DOES NOT EXIST;
-      %put Sankey -> THE MACRO WILL STOP EXECUTING.;
+      %put %str(W)ARNING: Sankey -> DATASET [&sankeylib..nodes] DOES NOT EXIST.;
+      %put %str(W)ARNING: Sankey -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
    
@@ -110,8 +132,8 @@ percents=         Show percents inside each bar.
    
    %let _dataexist = %sysfunc(exist(&sankeylib..links));
    %if &_dataexist = 0 %then %do;
-      %put Sankey -> DATASET [&sankeylib..links] DOES NOT EXIST;
-      %put Sankey -> THE MACRO WILL STOP EXECUTING.;
+      %put %str(W)ARNING: Sankey -> DATASET [&sankeylib..links] DOES NOT EXIST.;
+      %put %str(W)ARNING: Sankey -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
    
@@ -133,15 +155,15 @@ percents=         Show percents inside each bar.
    %mend varexist;
    
    %if %varexist(nodes,x) = 0 or %varexist(nodes,y) = 0 or %varexist(nodes,size) = 0 %then %do;
-      %put Sankey -> DATASET [work.nodes] MUST HAVE VARIABLES [x y size];
-      %put Sankey -> THE MACRO WILL STOP EXECUTING.;
+      %put %str(W)ARNING: Sankey -> DATASET [work.nodes] MUST HAVE VARIABLES [x y size].;
+      %put %str(W)ARNING: Sankey -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
    
    %if %varexist(links,x1) = 0 or %varexist(links,y1) = 0 or %varexist(links,x2) = 0 
          or %varexist(links,y2) = 0 or %varexist(links,thickness) = 0 %then %do;
-      %put Sankey -> DATASET [work.links] MUST HAVE VARIABLES [x1 y1 x2 y2 thickness];
-      %put Sankey -> THE MACRO WILL STOP EXECUTING.;
+      %put %str(W)ARNING: Sankey -> DATASET [work.links] MUST HAVE VARIABLES [x1 y1 x2 y2 thickness].;
+      %put %str(W)ARNING: Sankey -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
    
@@ -225,8 +247,8 @@ percents=         Show percents inside each bar.
    run;
    
    %if &_badinterpol eq 1 %then %do;
-      %put Sankey -> THE VALUE INTERPOL= [&interpol] IS INVALID.;
-      %put Sankey -> THE MACRO WILL STOP EXECUTING.;
+      %put %str(W)ARNING: Sankey -> THE VALUE INTERPOL= [&interpol] IS INVALID.;
+      %put %str(W)ARNING: Sankey -> THE MACRO WILL STOP EXECUTING.;
       %return;
    %end;
    
@@ -252,12 +274,17 @@ percents=         Show percents inside each bar.
       set _ctfhl;
       by x;
       node = _N_;
-      retain cumpct;
-      if first.x then cumpct = 0;
-      low = cumpct;
-      high = cumpct + rowpercent;
-      cumpct = high;   
-      keep x y node low high;   
+      retain cumpercent;
+      if first.x then cumpercent = 0;
+      lowpercent = cumpercent;
+      highpercent = cumpercent + 100*frequency/&subject_n;
+      cumpercent = highpercent;   
+      retain cumcount;
+      if first.x then cumcount = 0;
+      lowcount = cumcount;
+      highcount = cumcount + frequency;
+      cumcount = highcount;   
+      keep x y node lowpercent highpercent lowcount highcount;   
    run;
    
    proc sql noprint;
@@ -294,18 +321,33 @@ percents=         Show percents inside each bar.
          %if &jro = 0 %then %let jro = &maxy;
          if node = &j then do;
             xb&jc = x;
-            lowb&jc = low;
-            highb&jc = high;
-            legendlabel = "&&yvarord&jro";
+            lowb&jc = lowpercent;
+            %if &stat eq freq %then
+               lowb&jc = lowb&jc*&subject_n/100;;
+            highb&jc = highpercent;
+            %if &stat eq freq %then
+               highb&jc = highb&jc*&subject_n/100;;
+            %if &yfmt eq %then 
+               legendlabel = "&&yvarord&jro" ;
+            %else %if &yfmt ne %then
+               legendlabel = put(y,&yfmt.) ;
+            ;
             highlow = "highlow x=xb&jc low=lowb&jc high=highb&jc / type=bar barwidth=&barwidth" ||
                " fillattrs=(color=" || trim(color) || ")" ||
+               " lineattrs=(color=black pattern=solid)" ||
                " name='" || trim(color) || "' legendlabel='" || trim(legendlabel) || "';";
             *--- sneaking in a scatter statement for percent annotation purposes ---;
-            mean = mean(low,high);
-            percent = high - low;
+            mean = mean(lowpercent,highpercent);
+            %if &stat eq freq %then
+               mean = mean(lowcount,highcount);;
+            percent = highpercent - lowpercent;
+            %if &stat eq freq %then
+               percent = highcount - lowcount;;
             if percent >= 1 then do;
                meanb&jc = mean;
                textb&jc = compress(put(percent,3.)) || '%';
+               %if &stat eq freq %then
+                  textb&jc = compress(put(percent,3.));;
                scatter = "scatter x=xb&jc y=meanb&jc / x2axis markerchar=textb&jc;";
             end;
          end;
@@ -355,53 +397,81 @@ percents=         Show percents inside each bar.
 
 
 
-   %*---------- number of subjects overall ----------;
+   %*---------- left edge of each band ----------;
    
-   proc sql noprint;
-      select   sum(size)
-      into     :denom trimmed
-      from     nodes
-      where    x = 1
+   proc sql;
+      create   table _links1 as
+      select   a.*, b.highcount as cumthickness 
+      from     links as a
+               inner join _highlow (where=(highcount~=lowcount)) as b
+               on a.x1 = b.x 
+                  and a.y1 = b.y
+      order by x1, y1, x2, y2
       ;
    quit;
    
-   %put NOTE- &=denom;
-      
-   %*---------- left edge of each band ----------;
-   
    data _links2;
-      set links;
+      set _links1;
       by x1 y1 x2 y2;
       link = _N_;
-      retain lastybhigh1;
-      if first.x1 then lastybhigh1 = 0;
       xt1 = x1;
+      retain lastybhigh1;
+      if first.x1 then 
+         lastybhigh1 = 0;
       yblow1 = lastybhigh1;
-      ybhigh1 = lastybhigh1 + thickness/&denom;
+      ybhigh1 = lastybhigh1 + thickness/&subject_n;
       lastybhigh1 = ybhigh1;
-   run;
-   
-   proc sort data=_links2 out=_links3;
-      by x2 y2 x1 y1;
+      if last.y1 then
+         lastybhigh1 = cumthickness/&subject_n;
    run;
    
    %*---------- right edge of each band ----------;
    
-   data _links3;
+   proc sql;
+      create   table _links3 as
+      select   a.*, b.highcount as cumthickness 
+      from     links as a
+               inner join _highlow (where=(highcount~=lowcount)) as b
+               on a.x2 = b.x 
+                  and a.y2 = b.y
+      order by x2, y2, x1, y1
+      ;
+   quit;
+   
+   data _links4;
       set _links3;
       by x2 y2 x1 y1;
       retain lastybhigh2;
-      if first.x2 then lastybhigh2 = 0;
+      if first.x2 then 
+         lastybhigh2 = 0;
       xt2 = x2;
       yblow2 = lastybhigh2;
-      ybhigh2 = lastybhigh2 + thickness/&denom;
+      ybhigh2 = lastybhigh2 + thickness/&subject_n;
       lastybhigh2 = ybhigh2;
+      if last.y2 then
+         lastybhigh2 = cumthickness/&subject_n;
    run;
    
    %*---------- make vertical ----------;
    
-   data _links4;
-      set _links3;
+   proc sort data=_links2 out=_links2b;
+      by x1 y1 x2 y2;
+   run;
+   
+   proc sort data=_links4 out=_links4b;
+      by x1 y1 x2 y2;
+   run;
+   
+   data _links5;
+      merge
+         _links2b (keep=x1 y1 x2 y2 xt1 yblow1 ybhigh1 link)
+         _links4b (keep=x1 y1 x2 y2 xt2 yblow2 ybhigh2)
+         ;
+      by x1 y1 x2 y2;
+   run;
+   
+   data _links6;
+      set _links5;
       
       xt1alt = xt1 + &barwidth*0.48;
       xt2alt = xt2 - &barwidth*0.48;
@@ -443,7 +513,7 @@ percents=         Show percents inside each bar.
       keep xt yblow ybhigh link y1;
    run;
    
-   proc sort data=_links4;
+   proc sort data=_links6;
       by link xt;
    run;
    
@@ -452,14 +522,14 @@ percents=         Show percents inside each bar.
    proc sql noprint;
       select   max(link)
       into     :maxband
-      from     _links4
+      from     _links6
       ;
    quit;
    
    %*---------- write the statements ----------;
    
    data _band_statements;
-      set _links4;
+      set _links6;
       by link xt;
       length band $200 color $20;
 
@@ -474,7 +544,11 @@ percents=         Show percents inside each bar.
          if link = &j then do;
             xt&jc = xt;
             yblow&jc = 100*yblow;
+            %if &stat eq freq %then
+               yblow&jc = yblow&jc*&subject_n/100;;
             ybhigh&jc = 100*ybhigh;
+            %if &stat eq freq %then
+               ybhigh&jc = ybhigh&jc*&subject_n/100;;
             band = "band x=xt&jc lower=yblow&jc upper=ybhigh&jc / x2axis transparency=0.5" || 
                " fill fillattrs=(color=" || trim(color) || ")" ||
                " ;";
@@ -512,13 +586,16 @@ percents=         Show percents inside each bar.
       %*---------- plotting statements ----------;
       &band;
       &highlow;
-      %if &percents = yes %then &scatter;;
+      %if &datalabel eq yes %then &scatter;;
       %*---------- axis and legend statements ----------;
       x2axis display=(nolabel noticks) min=1 max=&maxx integer offsetmin=&offset offsetmax=&offset 
          tickvalueformat=&xfmt;
       xaxis display=none type=discrete offsetmin=&offset offsetmax=&offset 
          tickvalueformat=&xfmt;
-      yaxis offsetmin=0.02 offsetmax=0.02 label="Percent" grid;
+      yaxis offsetmin=0.02 offsetmax=0.02 grid 
+         %if &stat eq freq %then label="Frequency";
+         %else label="Percent";
+         ;
       keylegend %do i = 1 %to &maxy; "&&color&i" %end; / title="&legendtitle";
    run;
    
@@ -528,9 +605,13 @@ percents=         Show percents inside each bar.
    %*--------------------------------------------------------------------------------;
    
    
-   proc datasets library=work nolist;
-      delete _nodes: _links: _all: _band: _highlow: _ctfhl;
-   run; quit;
+   %if &debug eq no %then %do;
+   
+      proc datasets library=work nolist nodetails;
+         delete _nodes: _links: _all: _band: _highlow: _ctfhl _denom:;
+      run; quit;
+   
+   %end;
    
 
 
