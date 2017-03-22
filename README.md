@@ -1,7 +1,7 @@
 # sas-sankeybarchart
 This repository contains a set of SAS macros for creating longitudinal bar charts with Sankey-style overlays. 
 
-![sas-sankeybarchart png](https://github.com/RhoInc/sas-sankeybarchart/blob/master/img/mo1.png)
+![sas-sankeybarchart png](./img/mo1.png)
 
 A quick overview of the macro is available at the [wiki](https://github.com/RhoInc/sas-sankeybarchart/wiki).
 
