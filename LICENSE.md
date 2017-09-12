@@ -1,4 +1,4 @@
-Copyright (c) 2015 [Rho, Inc.](http://www.rhoworld.com)
+Copyright (c) 2015-2016 [Rho, Inc.](http://www.rhoworld.com)
 
 This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0)
 
